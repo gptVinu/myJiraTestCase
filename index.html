@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page with CAPTCHA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 300px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:disabled {
+            background-color: #6c757d;
+        }
+        .form-group button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .links {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .links a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .message {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .message.success {
+            color: green;
+        }
+        .message.error {
+            color: red;
+        }
+        .icon {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .icon.success::before {
+            content: '✔';
+            color: green;
+            font-size: 20px;
+        }
+        .icon.error::before {
+            content: '✘';
+            color: red;
+            font-size: 20px;
+        }
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .captcha-container img {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .captcha-container input {
+            width: 100px;
+        }
+        .hidden {
+            display: none;
+        }
+        .animate {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginForm">
+        <h2>Login</h2>
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter username">
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password">
+        </div>
+        <div class="form-group captcha-container">
+            <img id="captchaImage" src="" alt="CAPTCHA">
+            <input type="text" id="captchaInput" placeholder="Enter CAPTCHA">
+        </div>
+        <div class="form-group">
+            <button onclick="login()">Login</button>
+        </div>
+        <div class="links">
+            <a href="#" onclick="showRecoverSection('username')">Forgot Username?</a> |
+            <a href="#" onclick="showRecoverSection('password')">Forgot Password?</a> |
+            <a href="#" onclick="showSignUpSection()">Sign Up</a>
+        </div>
+        <div class="message" id="message">
+            <span class="icon" id="messageIcon"></span>
+            <span id="messageText"></span>
+        </div>
+    </div>
+
+    <script>
+        const users = {};
+        let captchaText = '';
+
+        function generateCaptcha() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let captcha = '';
+            for (let i = 0; i < 6; i++) {
+                captcha += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            captchaText = captcha;
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText(captcha, canvas.width / 2, canvas.height / 2 + 10);
+            document.getElementById('captchaImage').src = canvas.toDataURL();
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const captchaInput = document.getElementById('captchaInput').value;
+            const message = document.getElementById('message');
+            const messageIcon = document.getElementById('messageIcon');
+            const messageText = document.getElementById('messageText');
+
+            if (captchaInput !== captchaText) {
+                message.className = 'message error animate';
+                messageIcon.className = 'icon error';
+                messageText.textContent = 'CAPTCHA is incorrect.';
+                message.style.display = 'block';
+                generateCaptcha(); // Refresh CAPTCHA
+                return;
+            }
+
+            if (users[username] && users[username] === password) {
+                message.className = 'message success animate';
+                messageIcon.className = 'icon success';
+                messageText.textContent = 'Login successful!';
+            } else {
+                message.className = 'message error animate';
+                messageIcon.className = 'icon error';
+                messageText.textContent = 'Incorrect username or password.';
+            }
+            message.style.display = 'block';
+        }
+
+        function showRecoverSection(type) {
+            document.getElementById('loginForm').innerHTML = `
+                <h2>Recover ${type === 'username' ? 'Username' : 'Password'}</h2>
+                <div class="form-group">
+                    <label for="${type}">Enter your email:</label>
+                    <input type="text" id="${type}" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <button onclick="recover('${type}')">Submit</button>
+                </div>
+                <div class="links">
+                    <a href="#" onclick="showLogin()">Back to Login</a>
+                </div>
+            `;
+        }
+
+        function recover(type) {
+            alert(`Recovery process for ${type} initiated.`);
+            showLogin();
+        }
+
+        function showSignUpSection() {
+            document.getElementById('loginForm').innerHTML = `
+                <h2>Sign Up</h2>
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" placeholder="Enter first name">
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" placeholder="Enter last name">
+                </div>
+                <div class="form-group">
+                    <label for="newUsername">Username:</label>
+                    <input type="text" id="newUsername" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Password:</label>
+                    <input type="password" id="newPassword" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password:</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm password">
+                </div>
+                <div class="form-group">
+                    <button onclick="signUp()">Sign Up</button>
+                </div>
+                <div class="links">
+                    <a href="#" onclick="showLogin()">Back to Login</a>
+                </div>
+            `;
+        }
+
+        function signUp() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const newUsername = document.getElementById('newUsername').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const message = document.getElementById('message');
+            const messageIcon = document.getElementById('messageIcon');
+            const messageText = document.getElementById('messageText');
+
+            if (newPassword !== confirmPassword) {
+                message.className = 'message error animate';
+                messageIcon.className = 'icon error';
+                messageText.textContent = 'Passwords do not match.';
+                message.style.display = 'block';
+                return;
+            }
+
+            if (newUsername in users) {
+                message.className = 'message error animate';
+                messageIcon.className = 'icon error';
+                messageText.textContent = 'Username already exists.';
+                message.style.display = 'block';
+                return;
+            }
+
+            users[newUsername] = newPassword;
+            message.className = 'message success animate';
+            messageIcon.className = 'icon success';
+            messageText.textContent = 'Sign up successful! You can now log in.';
+            message.style.display = 'block';
+            setTimeout(showLogin, 2000); // Redirect to login page after a short delay
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').innerHTML = `
+                <h2>Login</h2>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <div class="form-group captcha-container">
+                    <img id="captchaImage" src="" alt="CAPTCHA">
+                    <input type="text" id="captchaInput" placeholder="Enter CAPTCHA">
+                </div>
+                <div class="form-group">
+                    <button onclick="login()">Login</button>
+                </div>
+                <div class="links">
+                    <a href="#" onclick="showRecoverSection('username')">Forgot Username?</a> |
+                    <a href="#" onclick="showRecoverSection('password')">Forgot Password?</a> |
+                    <a href="#" onclick="showSignUpSection()">Sign Up</a>
+                </div>
+                <div class="message" id="message">
+                    <span class="icon" id="messageIcon"></span>
+                    <span id="messageText"></span>
+                </div>
+            `;
+            generateCaptcha(); // Generate a new CAPTCHA on page load
+            document.getElementById('message').style.display = 'none';
+        }
+
+        // Initialize the login page with CAPTCHA
+        showLogin();
+    </script>
+</body>
+</html>
